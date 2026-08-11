@@ -105,6 +105,61 @@ static const uint8_t ada_font[][5] = {
 
 static const char ada_sym_chars[] = "[]{}()&*$%^+~!@#|_;=\\`.-,'/<>";
 
+// 5x7 glyphs for held-layer content (symbols at 3px are hieroglyphs; the
+// symbol layers only use 5 columns, so they get a bigger font). One byte
+// per row, low 5 bits (MSB-first: bit4 = left pixel).
+// Index: 0-9 = digits, 10+ = ada_big_chars order. Letters fall back to 3x5.
+static const uint8_t ada_font5[][7] = {
+    {0x0E, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0E}, // 0
+    {0x04, 0x0C, 0x04, 0x04, 0x04, 0x04, 0x0E}, // 1
+    {0x0E, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1F}, // 2
+    {0x1F, 0x02, 0x04, 0x02, 0x01, 0x11, 0x0E}, // 3
+    {0x02, 0x06, 0x0A, 0x12, 0x1F, 0x02, 0x02}, // 4
+    {0x1F, 0x10, 0x1E, 0x01, 0x01, 0x11, 0x0E}, // 5
+    {0x06, 0x08, 0x10, 0x1E, 0x11, 0x11, 0x0E}, // 6
+    {0x1F, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08}, // 7
+    {0x0E, 0x11, 0x11, 0x0E, 0x11, 0x11, 0x0E}, // 8
+    {0x0E, 0x11, 0x11, 0x0F, 0x01, 0x02, 0x0C}, // 9
+    {0x0E, 0x08, 0x08, 0x08, 0x08, 0x08, 0x0E}, // [
+    {0x0E, 0x02, 0x02, 0x02, 0x02, 0x02, 0x0E}, // ]
+    {0x06, 0x04, 0x04, 0x08, 0x04, 0x04, 0x06}, // {
+    {0x0C, 0x04, 0x04, 0x02, 0x04, 0x04, 0x0C}, // }
+    {0x02, 0x04, 0x08, 0x08, 0x08, 0x04, 0x02}, // (
+    {0x08, 0x04, 0x02, 0x02, 0x02, 0x04, 0x08}, // )
+    {0x0C, 0x12, 0x14, 0x08, 0x15, 0x12, 0x0D}, // &
+    {0x00, 0x04, 0x15, 0x0E, 0x15, 0x04, 0x00}, // *
+    {0x04, 0x0F, 0x14, 0x0E, 0x05, 0x1E, 0x04}, // $
+    {0x18, 0x19, 0x02, 0x04, 0x08, 0x13, 0x03}, // %
+    {0x04, 0x0A, 0x11, 0x00, 0x00, 0x00, 0x00}, // ^
+    {0x00, 0x04, 0x04, 0x1F, 0x04, 0x04, 0x00}, // +
+    {0x00, 0x00, 0x08, 0x15, 0x02, 0x00, 0x00}, // ~
+    {0x04, 0x04, 0x04, 0x04, 0x04, 0x00, 0x04}, // !
+    {0x0E, 0x11, 0x01, 0x0D, 0x15, 0x15, 0x0E}, // @
+    {0x0A, 0x0A, 0x1F, 0x0A, 0x1F, 0x0A, 0x0A}, // #
+    {0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04}, // |
+    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F}, // _
+    {0x00, 0x04, 0x00, 0x00, 0x04, 0x04, 0x08}, // ;
+    {0x00, 0x00, 0x1F, 0x00, 0x1F, 0x00, 0x00}, // =
+    {0x10, 0x08, 0x08, 0x04, 0x02, 0x02, 0x01}, // backslash
+    {0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00}, // `
+    {0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x0C}, // .
+    {0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00}, // -
+    {0x00, 0x00, 0x00, 0x00, 0x0C, 0x04, 0x08}, // ,
+    {0x0C, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00}, // '
+    {0x01, 0x02, 0x02, 0x04, 0x08, 0x08, 0x10}, // /
+    {0x02, 0x04, 0x08, 0x10, 0x08, 0x04, 0x02}, // <
+    {0x08, 0x04, 0x02, 0x01, 0x02, 0x04, 0x08}, // >
+};
+
+static const char ada_big_chars[] = "[]{}()&*$%^+~!@#|_;=\\`.-,'/<>";
+
+static int8_t big_index(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    for (uint8_t i = 0; ada_big_chars[i]; i++)
+        if (ada_big_chars[i] == c) return 10 + i;
+    return -1;
+}
+
 static int8_t glyph_index(char c) {
     if (c >= 'a' && c <= 'z') return c - 'a';
     if (c >= '0' && c <= '9') return 26 + (c - '0');
@@ -143,6 +198,20 @@ static void ada_fill_rect(uint8_t x0, uint8_t y0, uint8_t w, uint8_t h, bool on)
 static void ada_dotted_hline(uint8_t y) {
     for (uint8_t x = 1; x < 31; x++)
         oled_write_pixel(x, y, x % 2);
+}
+
+// 5x7 glyph if one exists, else the 3x5 glyph centered in the big cell.
+static void ada_draw_big(uint8_t x0, uint8_t y0, char c, bool on) {
+    int8_t bi = big_index(c);
+    if (bi < 0) {
+        ada_draw_char(x0 + 1, y0 + 1, c, 1, on);
+        return;
+    }
+    for (uint8_t ry = 0; ry < 7; ry++) {
+        uint8_t bits = ada_font5[bi][ry];
+        for (uint8_t rx = 0; rx < 5; rx++)
+            if (bits & (0x10 >> rx)) oled_write_pixel(x0 + rx, y0 + ry, on);
+    }
 }
 
 // ---------------------------------------------------------------- key maps
@@ -221,33 +290,48 @@ static bool ada_key_down(uint8_t disp_row, uint8_t disp_col) {
 // ---------------------------------------------------------------- rendering
 // Grid geometry: 6 cols, 5px pitch, glyphs at x = 1 + col*5.
 // Alpha rows 9px pitch; thumb labels are 2 chars in 3 wider slots.
-static void ada_render_grid(const ada_hand_map_t *map, uint8_t y0) {
+
+
+// Grid geometry, small mode: 6 cols, 5px pitch, 3x5 glyphs at x = 1 + c*5.
+// Big mode (held-layer content, <=5 live cols): cols 1-5, 6px pitch, 5x7
+// glyphs at x = 1 + (c-1)*6. Alpha rows 9px pitch either way.
+static void ada_render_grid(const ada_hand_map_t *map, uint8_t y0, bool big) {
     for (uint8_t r = 0; r < 3; r++) {
         uint8_t y = y0 + r * 9;
-        for (uint8_t c = 0; c < 6; c++) {
-            uint8_t x    = 1 + c * 5;
-            bool    down = ada_key_down(r, c);
-            char    ch   = map->rows[r][c];
-            if (down) {
-                ada_fill_rect(x - 1, y - 2, 5, 9, true);
-                ada_draw_char(x, y, ch, 1, false); // carved
+        for (uint8_t c = big ? 1 : 0; c < 6; c++) {
+            bool down = ada_key_down(r, c);
+            char ch   = map->rows[r][c];
+            if (big) {
+                uint8_t x = 1 + (c - 1) * 6;
+                if (down) {
+                    ada_fill_rect(x - 1, y - 1, 7, 9, true);
+                    ada_draw_big(x, y, ch, false); // carved
+                } else {
+                    ada_draw_big(x, y, ch, true);
+                }
             } else {
-                ada_draw_char(x, y, ch, 1, true);
+                uint8_t x = 1 + c * 5;
+                if (down) {
+                    ada_fill_rect(x - 1, y - 2, 5, 9, true);
+                    ada_draw_char(x, y, ch, 1, false); // carved
+                } else {
+                    ada_draw_char(x, y, ch, 1, true);
+                }
             }
         }
     }
-    // thumbs
+    // thumbs: 2-char labels; single-char labels use the big font in big mode
     uint8_t ty = y0 + 27;
     for (uint8_t t = 0; t < 3; t++) {
-        uint8_t x    = 3 + t * 10;
-        bool    down = ada_key_down(3, t);
-        if (down) {
-            ada_fill_rect(x - 1, ty - 2, 9, 9, true);
-            ada_draw_char(x, ty, map->thumbs[t][0], 1, false);
-            ada_draw_char(x + 4, ty, map->thumbs[t][1], 1, false);
+        uint8_t x      = 3 + t * 10;
+        bool    down   = ada_key_down(3, t);
+        bool    single = big && map->thumbs[t][1] == ' ';
+        if (down) ada_fill_rect(x - 1, ty - 2, 9, 9, true);
+        if (single) {
+            ada_draw_big(x + 2, ty - 1, map->thumbs[t][0], !down);
         } else {
-            ada_draw_char(x, ty, map->thumbs[t][0], 1, true);
-            ada_draw_char(x + 4, ty, map->thumbs[t][1], 1, true);
+            ada_draw_char(x, ty, map->thumbs[t][0], 1, !down);
+            ada_draw_char(x + 4, ty, map->thumbs[t][1], 1, !down);
         }
     }
 }
@@ -268,13 +352,16 @@ static void ada_render_learning(void) {
     if (last_input_activity_elapsed() < 250) ada_fill_rect(29, 1, 2, 2, true);
     ada_dotted_hline(8);
 
-    // tap grid
-    ada_render_grid(&ada_tap_maps[layer][hand], 13);
+    // tap grid — big font for the content hand of held layers (nav/mouse/
+    // media content lives on the right hand, num/sym/fun on the left)
+    bool big = false;
+    if (layer >= 4) big = (hand == (layer >= 7 ? 0 : 1));
+    ada_render_grid(&ada_tap_maps[layer][hand], 13, big);
     ada_dotted_hline(48);
 
     // hold grid on base/extra; big layer name otherwise
     if (layer <= 1) {
-        ada_render_grid(&ada_hold_maps[hand], 53);
+        ada_render_grid(&ada_hold_maps[hand], 53, false);
     } else {
         const char *name = ada_layer_names[layer];
         uint8_t len = 0;
