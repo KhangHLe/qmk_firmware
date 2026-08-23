@@ -232,8 +232,10 @@ typedef struct {
 static const ada_hand_map_t ada_tap_maps[10][2] = {
     // base
     {{ADA_QWERTY_L, {"es", "sp", "tb"}}, {ADA_QWERTY_R, {"en", "bs", "dl"}}},
-    // extra (byte-identical to base in our build)
-    {{ADA_QWERTY_L, {"es", "sp", "tb"}}, {ADA_QWERTY_R, {"en", "bs", "dl"}}},
+    // extra = GAME (outer columns live, like TAP; thumbs: plain Alt/Spc,
+    // Tab holds NAV; right thumbs keep SYM/NUM/FUN)
+    {{{"eqwert", "sasdfg", "czxcvb"}, {"al", "sp", "tb"}},
+     {{"yuiopg", "hjkl's", "nm,./c"}, {"en", "bs", "dl"}}},
     // tap (gaming: outer columns live)
     {{{"aqwert", "sasdfg", "czxcvb"}, {"es", "sp", "tb"}},
      {{"yuiopb", "hjkl'c", "nm,./g"}, {"en", "bs", "dl"}}},
@@ -268,7 +270,7 @@ static const ada_hand_map_t ada_hold_maps[2] = {
 };
 
 static const char *ada_layer_names[] = {
-    "base", "ext", "tap", "btn", "nav", "mse", "med", "num", "sym", "fun",
+    "base", "game", "tap", "btn", "nav", "mse", "med", "num", "sym", "fun",
 };
 
 // ---------------------------------------------------------------- this hand
@@ -359,8 +361,9 @@ static void ada_render_learning(void) {
     ada_render_grid(&ada_tap_maps[layer][hand], 13, big);
     ada_dotted_hline(48);
 
-    // hold grid on base/extra; big layer name otherwise
-    if (layer <= 1) {
+    // hold grid on base; big layer name otherwise (GAME renders like TAP —
+    // Khang's call: "it looks pretty")
+    if (layer == 0) {
         ada_render_grid(&ada_hold_maps[hand], 53, false);
     } else {
         const char *name = ada_layer_names[layer];
