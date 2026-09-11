@@ -23,9 +23,16 @@
 // receives nothing until the board is unplugged and replugged. Suspend/resume
 // does not trip it (the role is already decided). Two reset experiments on a
 // RUNNING board (usbreset + full xHCI unbind/rebind, 2026-09-10) both survived,
-// which isolated the fault to this power-up window. 30 s outlasts POST; on a
-// normal hot-plug the host answers in milliseconds and the poll exits at once.
-#define SPLIT_USB_TIMEOUT 30000
+// which isolated the fault to this power-up window.
+//
+// FIRST ATTEMPT, REVERTED (2026-09-11 01:38): SPLIT_USB_TIMEOUT 30000. Wrong
+// shape. The MASTER exits the poll the instant the host enumerates it; the
+// SLAVE never sees USB_ACTIVE at all, so it burns the ENTIRE timeout before
+// concluding it is the slave. Result: the right half plays dead for 30 s on
+// every hot-plug (Khang thought it had bricked). Stock 2000 restored. The
+// correct fix is a different shape — a half that decided SLAVE but later sees
+// USB_ACTIVE must re-run detection instead of sitting on the static forever
+// (is_keyboard_master is weak; override candidate, needs a live test) — TODO.
 
 // --- ada: EXTRA = GAME (Khang's design, 2026-08-23) ---
 // Base with the clever parts disabled, but layers kept: plain QWERTY alphas
