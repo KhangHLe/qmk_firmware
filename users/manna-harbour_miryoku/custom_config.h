@@ -12,13 +12,31 @@
 #define SPLIT_MODS_ENABLE            // slave renders live GACS
 #define SPLIT_ACTIVITY_ENABLE        // slave link LED
 
+// --- ada: cold-boot master detection (2026-09-11) ---
+// The Corne has no handedness pin, so split QMK decides master-vs-slave by
+// polling for a COMPLETED USB enumeration (USB_ACTIVE), once, at power-up,
+// for SPLIT_USB_TIMEOUT ms (split_util.c usbIsActive; default 2000). On a cold
+// boot the board gets power while the PC is still in POST and nobody is
+// enumerating; two seconds pass, the connected half concludes it is the SLAVE,
+// and that decision is a static that never re-evaluates until power is cut.
+// Symptom: keys register on the OLED (local matrix + local screen) but the PC
+// receives nothing until the board is unplugged and replugged. Suspend/resume
+// does not trip it (the role is already decided). Two reset experiments on a
+// RUNNING board (usbreset + full xHCI unbind/rebind, 2026-09-10) both survived,
+// which isolated the fault to this power-up window. 30 s outlasts POST; on a
+// normal hot-plug the host answers in milliseconds and the poll exits at once.
+#define SPLIT_USB_TIMEOUT 30000
+
 // --- ada: EXTRA = GAME (Khang's design, 2026-08-23) ---
 // Base with the clever parts disabled, but layers kept: plain QWERTY alphas
 // (no HRM — Super->Start focus steals killed it for gaming), plain Space
 // (no hold tax on the jump key), MEDIA and MOUSE dropped (physical volume
-// knobs + an MMO mouse own those jobs). NAV moves Spc->Tab so Space is free.
-// Outer columns: gamer edges left (Esc/LShift/LCtrl), plain mods right
+// knobs + an MMO mouse own those jobs). NAV moves Spc->Esc so Space is free.
+// Outer columns: gamer edges left (Tab/LShift/LCtrl), plain mods right
 // (Super/RShift/RCtrl — plain KC_LGUI is tap-AND-hold Super natively).
+// 2026-09-11: Tab and Esc swapped. Tab is HELD in games (scoreboard, map), so
+// it cannot carry a layer; it moves to the plain outer-top corner. Esc takes
+// the thumb and the NAV hold — Esc is only ever tapped in a game.
 // No dedicated exit: layers stay live, so the canon switch keys ride along —
 // enter = NAV + double-tap e, exit = NAV + double-tap r (and u on SYM/NUM/
 // FUN; p there is BOOT — the double-tap guard is what stands between a raid
@@ -27,7 +45,7 @@
 KC_Q,              KC_W,              KC_E,              KC_R,              KC_T,              KC_Y,              KC_U,              KC_I,              KC_O,              KC_P,              \
 KC_A,              KC_S,              KC_D,              KC_F,              KC_G,              KC_H,              KC_J,              KC_K,              KC_L,              KC_QUOT,           \
 KC_Z,              KC_X,              KC_C,              KC_V,              KC_B,              KC_N,              KC_M,              KC_COMM,           KC_DOT,            KC_SLSH,           \
-U_NP,              U_NP,              KC_LALT,           KC_SPC,            LT(U_NAV,KC_TAB),  LT(U_SYM,KC_ENT),  LT(U_NUM,KC_BSPC), LT(U_FUN,KC_DEL),  U_NP,              U_NP
+U_NP,              U_NP,              KC_LALT,           KC_SPC,            LT(U_NAV,KC_ESC),  LT(U_SYM,KC_ENT),  LT(U_NUM,KC_BSPC), LT(U_FUN,KC_DEL),  U_NP,              U_NP
 
 #define MIRYOKU_LAYERMAPPING_EXTRA( \
      K00, K01, K02, K03, K04,      K05, K06, K07, K08, K09, \
@@ -36,7 +54,7 @@ U_NP,              U_NP,              KC_LALT,           KC_SPC,            LT(U
      N30, N31, K32, K33, K34,      K35, K36, K37, N38, N39 \
 ) \
 LAYOUT_split_3x6_3( \
-KC_ESC,  K00, K01, K02, K03, K04,      K05, K06, K07, K08, K09, KC_LGUI, \
+KC_TAB,  K00, K01, K02, K03, K04,      K05, K06, K07, K08, K09, KC_LGUI, \
 KC_LSFT, K10, K11, K12, K13, K14,      K15, K16, K17, K18, K19, KC_RSFT, \
 KC_LCTL, K20, K21, K22, K23, K24,      K25, K26, K27, K28, K29, KC_RCTL, \
                    K32, K33, K34,      K35, K36, K37 \
