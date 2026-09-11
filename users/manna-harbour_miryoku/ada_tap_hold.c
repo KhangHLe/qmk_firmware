@@ -17,18 +17,19 @@ void housekeeping_task_user(void) {
     achordion_task();
 }
 
-// Chordal-hold rule. The six thumb layer-taps are always allowed to hold: the
-// layers deliberately place same-hand content under them (the layer-lock tap
-// dances on the top row, the one-shot mods on NAV's home row). Everything else
-// — the eight home-row mod-taps — settles as a HOLD only against a key on the
-// OPPOSITE hand. Same-hand rolls ("of", "as", "we") therefore can never fire a
-// modifier, which is what let TAPPING_TERM loosen.
+// Chordal-hold rule: OFF (2026-09-11 pm, Khang's call after a day on it).
+// The first flash settled a home-row mod as HOLD only against the OPPOSITE
+// hand (achordion_opposite_hands). That killed every one-handed shortcut —
+// Ctrl(D)+C/V/Z/X/A/S/W/T and Gui(A)+Esc/Space are all left-hand-with-left-
+// mod, and Miryoku's answer ("use K for Ctrl") is a relearn he didn't ask
+// for. Returning true here hands the tap/hold decision back to QMK's own
+// PERMISSIVE_HOLD + TAPPING_TERM, and achordion stays loaded ONLY for the
+// streak rule below. Same-hand nested rolls ("as" with S released before A)
+// can now fire Gui+S again; the 200 ms streak still catches those mid-word
+// and after a fast space.
 bool achordion_chord(uint16_t tap_hold_keycode, keyrecord_t* tap_hold_record,
                      uint16_t other_keycode, keyrecord_t* other_record) {
-    if (IS_QK_LAYER_TAP(tap_hold_keycode)) {
-        return true;
-    }
-    return achordion_opposite_hands(tap_hold_record, other_record);
+    return true;
 }
 
 // Streak (Flow Tap): a mod-tap pressed within this many ms of the previous key
@@ -43,8 +44,12 @@ bool achordion_chord(uint16_t tap_hold_keycode, keyrecord_t* tap_hold_record,
 //                    alphas is the one scenario where pressing a mod may
 //                    conflict with require-prior-idle." Shift stays protected
 //                    by PERMISSIVE_HOLD (the other key must be RELEASED while
-//                    Shift is down; a real "fi" roll releases F first) and by
-//                    the opposite-hands rule above.
+//                    Shift is down; a real "fi" roll releases F first).
+//                    The ROLL-release capital (J↓ S↓ J↑ S↑ → "js", how a
+//                    real Shift key is used) is not fixable by any tap-hold
+//                    setting without breaking "fo"→"O"; that gesture moves
+//                    to the one-shot Shift on the outer home-row keys
+//                    (custom_config.h, MIRYOKU_LAYERMAPPING_BASE).
 //   others    200    Ctrl/Alt/Gui mid-word are almost always a misfire.
 uint16_t achordion_streak_chord_timeout(uint16_t tap_hold_keycode,
                                         uint16_t next_keycode) {

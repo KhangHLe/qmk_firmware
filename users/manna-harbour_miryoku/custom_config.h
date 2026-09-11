@@ -31,8 +31,46 @@
 // concluding it is the slave. Result: the right half plays dead for 30 s on
 // every hot-plug (Khang thought it had bricked). Stock 2000 restored. The
 // correct fix is a different shape — a half that decided SLAVE but later sees
-// USB_ACTIVE must re-run detection instead of sitting on the static forever
-// (is_keyboard_master is weak; override candidate, needs a live test) — TODO.
+// USB_ACTIVE must re-run detection instead of sitting on the static forever.
+//
+// SECOND ATTEMPT (2026-09-11 pm): QMK already ships that shape. With
+// SPLIT_WATCHDOG_ENABLE a half that decided SLAVE and is never pinged by a
+// master within SPLIT_WATCHDOG_TIMEOUT (3000 ms default; static-asserted
+// > SPLIT_USB_TIMEOUT) calls mcu_reset() and boots fresh — a new 2 s USB poll,
+// by which time the PC has enumerated it and it becomes MASTER. The genuine
+// slave (right half) resets alongside until a master appears, then is pinged
+// once and never resets again (split_watchdog_done is one-shot on the slave,
+// transactions.c watchdog_handlers_slave). Cost on hot-plug: none — the
+// master pings within its first transaction. Does NOT cover a right half
+// whose MCU never booted (OLED dark = ada_oled never ran; the slave draws its
+// header from local state, no link needed) — that one is power/flash, not
+// firmware. The master's OLED header now shows a hollow link box while the
+// slave is unreachable (ada_oled.c), so the next occurrence tells us which.
+#define SPLIT_WATCHDOG_ENABLE
+
+// --- ada: BASE outer home-row keys = one-shot Shift (2026-09-11 pm) ---
+// Miryoku leaves the 3x6 outer columns KC_NO. The left one sits where Shift
+// lives on a normal board. OSM(MOD_LSFT): tap it, the next key is shifted —
+// no tapping term, no hold, no roll to get wrong. It exists because the
+// roll-release capital (Shift up as the letter goes down) is how a real Shift
+// key is used and no mod-tap setting can honour it; both bibles (precondition
+// § "Shift thumb keys", urob's smart-shift) move typing-Shift off the tap-hold.
+// F/J keep their Shift for chords (Ctrl+Shift+x) and for a properly held
+// Shift. Khang's call: the thumbs are all spoken for, so outer home row.
+// Other outer keys stay KC_NO. (The OLED learning panel renders the five
+// inner columns only; the outer key isn't drawn.)
+#define MIRYOKU_LAYERMAPPING_BASE( \
+     K00, K01, K02, K03, K04,      K05, K06, K07, K08, K09, \
+     K10, K11, K12, K13, K14,      K15, K16, K17, K18, K19, \
+     K20, K21, K22, K23, K24,      K25, K26, K27, K28, K29, \
+     N30, N31, K32, K33, K34,      K35, K36, K37, N38, N39 \
+) \
+LAYOUT_split_3x6_3( \
+KC_NO,         K00, K01, K02, K03, K04,      K05, K06, K07, K08, K09, KC_NO, \
+OSM(MOD_LSFT), K10, K11, K12, K13, K14,      K15, K16, K17, K18, K19, OSM(MOD_LSFT), \
+KC_NO,         K20, K21, K22, K23, K24,      K25, K26, K27, K28, K29, KC_NO, \
+                    K32, K33, K34,      K35, K36, K37 \
+)
 
 // --- ada: EXTRA = GAME (Khang's design, 2026-08-23) ---
 // Base with the clever parts disabled, but layers kept: plain QWERTY alphas

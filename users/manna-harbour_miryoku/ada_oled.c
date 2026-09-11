@@ -27,6 +27,9 @@
 // All drawing in OLED_ROTATION_270 logical space: x [0,32), y [0,128).
 
 #include QMK_KEYBOARD_H
+#ifdef SPLIT_KEYBOARD
+#    include "split_util.h" // is_transport_connected — quantum.h does not pull this in
+#endif
 
 #ifdef OLED_ENABLE
 
@@ -352,6 +355,15 @@ static void ada_render_learning(void) {
     hdr[2 + i] = 0;
     ada_draw_str(1, 1, hdr, 1, true);
     if (last_input_activity_elapsed() < 250) ada_fill_rect(29, 1, 2, 2, true);
+    // slave-link marker, master only: a hollow 3x3 box while the other half is
+    // unreachable (is_transport_connected, split_util.c). Distinguishes
+    // "right half booted but unlinked" from "right half never booted" the next
+    // time it plays dead — the slave's own OLED can't tell us, it's dark either
+    // way. Nothing drawn when linked; ink only for the exception.
+    if (is_keyboard_master() && !is_transport_connected()) {
+        ada_fill_rect(24, 1, 3, 3, true);
+        ada_fill_rect(25, 2, 1, 1, false);
+    }
     ada_dotted_hline(8);
 
     // tap grid — big font for the content hand of held layers (nav/mouse/
